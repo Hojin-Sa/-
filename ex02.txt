@@ -1,0 +1,35 @@
+Analytic Geomerty
+맨하튼 norm/ 유클리드 norm
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+plt.rcParams[ "figure.figsize" ] = (10,10)  # plot 사이즈 조절
+
+# 1. ㅣ2norm 그리기
+xRight = np.linspace(0,1,50) # 0~1 간격 50개
+xLeft = np.linspace(-1,0,50) # -1~0 간격 50개
+
+xarr = [xRight, xLeft, xLeft, xRight] # x coordianate for 1사분면~4사분면
+xarr = np.array(xarr) # list -> array(4,50)
+xarr = xarr.reshape(-1)  # 한줄로! (200)
+
+yarr = [np.sqrt(1-xRight**2), np.sqrt(1-xLeft**2), -np.sqrt(1-xLeft**2), -np.sqrt(1-xRight**2)]
+yarr = np.array(yarr).reshape(-1)
+
+plt.scatter(xarr, yarr, s=.5, color='r') 
+
+
+# 2. l1norm 그리기
+xarr = [xRight, xLeft, xLeft, xRight] # x coordianate for 1사분면~4사분면
+xarr = np.array(xarr) # list -> array(4,50)
+xarr = xarr.reshape(-1)  # 한줄로! (200)
+
+yarr = [1-xRight, 1+xLeft, -(1+xLeft), -(1-xRight)]
+yarr = np.array(yarr).reshape(-1)
+
+plt.scatter(xarr, yarr, s=.5, color='b')
+plt.title('Manhattan Norm(L1, blue), Euclidean Norm(L2, red)')
+plt.legend(["l2","l1"])
+plt.show
+
