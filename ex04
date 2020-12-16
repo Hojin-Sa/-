@@ -1,0 +1,804 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# 인공지능기초\n",
+    "# [04실습]Matrix Decomposition"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "                                         201710779 휴먼지능정보공학과 사호진"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "import numpy.linalg as  npl  # linear algebra\n",
+    "import matplotlib.pyplot as plt\n",
+    "import PIL\n",
+    "from PIL import Image"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plt.rcParams[ \"figure.figsize\" ] = (10,10)\n",
+    "origin2D = np.array([0,0])\n",
+    "origin3D = np.array([0,0,0])\n",
+    "scale = 10"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[1 0]\n",
+      "[1 0]\n",
+      "[[1]\n",
+      " [0]]\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(np.array([1,0])) #행벡터\n",
+    "print(np.hstack([1,0]))  #위랑 같은 뜻!\n",
+    "\n",
+    "print(np.vstack([1,0]))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 4.1.1 Determinant: 면적(2D)/부피(3D이상) 측정 도구"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "A:\n",
+      "[[1 0]\n",
+      " [0 1]] \n",
+      "\n",
+      "det(A):\n",
+      "1.0\n"
+     ]
+    }
+   ],
+   "source": [
+    "# 1. |det(b,g)|\n",
+    "\n",
+    "g = np.vstack([1,0])\n",
+    "b = np.vstack([0,1])\n",
+    "\n",
+    "# 1) g,b를 열벡터로 가지는 matrix A 선언\n",
+    "A = np.hstack([g,b])\n",
+    "print (\"A:\")\n",
+    "print (A, \"\\n\")\n",
+    "\n",
+    "# 2) matrix A의 determinant 계산\n",
+    "print (\"det(A):\")\n",
+    "print (npl.det(A))\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 720x720 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "# 화살표 그리기 : 원점(x,y), 방향(u,v)\n",
+    "plt.axis([-scale/2,scale/2,-scale/2,scale/2])\n",
+    "\n",
+    "plt.quiver(origin2D[0], origin2D[1], g[0], g[1], scale = scale, color = \"g\")\n",
+    "plt.quiver(origin2D[0], origin2D[1], b[0], b[1], scale = scale, color = \"b\")\n",
+    "plt.quiver(g[0], g[1], b[0], b[1], scale = scale, width = 0.005, color = \"b\")\n",
+    "plt.quiver(b[0], b[1], g[0], g[1], scale = scale, width = 0.005, color = \"g\")\n",
+    "\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "A:\n",
+      "[[ 2  6  1]\n",
+      " [ 0  1  4]\n",
+      " [-8  0 -1]] \n",
+      "\n",
+      "det(A):\n",
+      "-185.99999999999991\n"
+     ]
+    }
+   ],
+   "source": [
+    "# 2. |det([r,b,g])|\n",
+    "\n",
+    "r = np.vstack([2,0,-8])\n",
+    "g = np.vstack([6,1,0])\n",
+    "b = np.vstack([1,4,-1])\n",
+    "A = np.hstack([r,g,b])\n",
+    "print (\"A:\")\n",
+    "print(A, \"\\n\")\n",
+    "\n",
+    "print (\"det(A):\")\n",
+    "print (npl.det(A))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 34,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "from mpl_toolkits import mplot3d\n",
+    "%matplotlib inline\n",
+    "\n",
+    "# Figure setup\n",
+    "fig = plt.figure()\n",
+    "ax = plt.axes(projection=\"3d\")\n",
+    "scale3D = 15\n",
+    "ax.set_xlim(-scale3D,scale3D)\n",
+    "ax.set_ylim(scale3D,-scale3D)\n",
+    "ax.set_zlim(-scale3D,scale3D)\n",
+    "ax.grid(b=None)\n",
+    "\n",
+    "# determinant 그리기\n",
+    "ax.quiver(origin3D[0],origin3D[1],origin3D[2],\n",
+    "          A[0,0],A[1,0],A[2,0],\n",
+    "          color = \"r\",linewidths = .5, arrow_length_ratio = .05)\n",
+    "ax.quiver(origin3D[0],origin3D[1],origin3D[2],\n",
+    "          A[0,1],A[1,1],A[2,1],\n",
+    "          color = \"g\",linewidths = .5, arrow_length_ratio = .05)\n",
+    "ax.quiver(origin3D[0],origin3D[1],origin3D[2],\n",
+    "          A[0,2],A[1,2],A[2,2],\n",
+    "          color = \"b\",linewidths = .5, arrow_length_ratio = .05)\n",
+    "\n",
+    "import itertools as it\n",
+    "quiverkey = dict(linewidths = .5, arrow_length_ratio = .05, label=\"_nolegend_\")\n",
+    "c = [\"r\",\"g\",\"b\"]\n",
+    "\n",
+    "for i in[i for i in list(it.product([0,1,2],repeat=2)) if i[0] != i[1]]:\n",
+    "    ax.quiver(A[0,i[0]], A[1,i[0]], A[2,i[0]],\n",
+    "    A[0,i[1]], A[1,i[1]], A[2,i[1]],\n",
+    "    color = c[i[1]], **quiverkey)\n",
+    "    \n",
+    "ax.quiver(A[0,1]+A[0,2], A[1,1]+A[1,2], A[2,1]+A[2,2],\n",
+    "         A[0,0], A[1,0], A[2,0],\n",
+    "         color = \"r\", **quiverkey)\n",
+    "ax.quiver(A[0,2]+A[0,0], A[1,2]+A[1,0], A[2,2]+A[2,0],\n",
+    "         A[0,1], A[1,1], A[2,1],\n",
+    "         color = \"g\", **quiverkey)\n",
+    "ax.quiver(A[0,0]+A[0,1], A[1,0]+A[1,1], A[2,0]+A[2,1],\n",
+    "         A[0,2], A[1,2], A[2,2],\n",
+    "         color = \"b\", **quiverkey)\n",
+    "\n",
+    "plt.show()\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 4.1.3 Trace"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 35,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "A:\n",
+      "[[  3   4  -8]\n",
+      " [  1   3   7]\n",
+      " [  6 -11   2]] \n",
+      "\n",
+      "Trace(A):\n",
+      "8\n"
+     ]
+    }
+   ],
+   "source": [
+    "A = np.array([[3,4,-8],\n",
+    "             [1,3,7],\n",
+    "             [6,-11,2]])\n",
+    "print (\"A:\")\n",
+    "print (A, \"\\n\")\n",
+    "\n",
+    "print (\"Trace(A):\")\n",
+    "print (np.trace(A))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 36,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "tr(xy^T): \n",
+      "19\n",
+      "x^Ty: \n",
+      "[[19]]\n"
+     ]
+    }
+   ],
+   "source": [
+    "x = np.vstack([3,-1])\n",
+    "y = np.vstack([8,5])\n",
+    "\n",
+    "print (\"tr(xy^T): \")\n",
+    "yt = np.transpose(y)\n",
+    "print (np.trace( x.dot(yt) ))\n",
+    "\n",
+    "print (\"x^Ty: \")\n",
+    "xt = np.transpose(x)\n",
+    "print (xt.dot(y))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cholesky decomposition"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 38,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "A:\n",
+      "[[3 2 2]\n",
+      " [2 3 2]\n",
+      " [2 2 3]]\n",
+      "Cholesky(A): L\n",
+      "[[1.73205081 0.         0.        ]\n",
+      " [1.15470054 1.29099445 0.        ]\n",
+      " [1.15470054 0.51639778 1.18321596]]\n",
+      "L^T\n",
+      "[[1.73205081 1.15470054 1.15470054]\n",
+      " [0.         1.29099445 0.51639778]\n",
+      " [0.         0.         1.18321596]]\n"
+     ]
+    }
+   ],
+   "source": [
+    "A = np.vstack([[3,2,2],[2,3,2],[2,2,3]])\n",
+    "print (\"A:\")\n",
+    "print (A)\n",
+    "\n",
+    "print (\"Cholesky(A): L\")\n",
+    "print (npl.cholesky(A))\n",
+    "\n",
+    "print (\"L^T\")\n",
+    "print (np.transpose( npl.cholesky(A) ))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 4.3 Eigendecomposition"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 42,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "A:\n",
+      "[[4 2]\n",
+      " [1 3]] \n",
+      "\n",
+      "[5. 2.]\n",
+      "[[ 0.89442719 -0.70710678]\n",
+      " [ 0.4472136   0.70710678]]\n",
+      "u1:  [[0.89442719]\n",
+      " [0.4472136 ]]\n",
+      "u2:  [[-0.70710678]\n",
+      " [ 0.70710678]]\n",
+      "eigen values:  5.0 2.0 \n",
+      "\n",
+      "Au1:  [[4.47213595]\n",
+      " [2.23606798]]\n",
+      "l1*u1:  [[4.47213595]\n",
+      " [2.23606798]]\n",
+      "Au2:  [[-1.41421356]\n",
+      " [ 1.41421356]]\n",
+      "l2*u2:  [[-1.41421356]\n",
+      " [ 1.41421356]]\n"
+     ]
+    }
+   ],
+   "source": [
+    "A = np.vstack([[4,2],[1,3]])\n",
+    "print (\"A:\")\n",
+    "print (A, \"\\n\")\n",
+    "\n",
+    "e_values, e_vectors = npl.eig(A)\n",
+    "print (e_values)\n",
+    "print (e_vectors)\n",
+    "\n",
+    "# eigen vector u1, u2\n",
+    "u1 = np.vstack(e_vectors[:,0])\n",
+    "u2 = np.vstack(e_vectors[:,1])\n",
+    "print (\"u1: \", u1)\n",
+    "print(\"u2: \", u2)\n",
+    "\n",
+    "# eigen valus lambda1, lambda2\n",
+    "l1, l2 = e_values[0], e_values[1]\n",
+    "print (\"eigen values: \", l1,l2, \"\\n\")\n",
+    "\n",
+    "#Check\n",
+    "print (\"Au1: \", np.dot(A, u1))\n",
+    "print (\"l1*u1: \", l1*u1)\n",
+    "\n",
+    "print (\"Au2: \", np.dot(A, u2))\n",
+    "print (\"l2*u2: \", l2*u2)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# 4.4 Singular value decomposition (SVD)\n",
+    "## Image processing/reconstruction with the SVD"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 1) Stonehenge 이미지 파일 파악\n",
+    "\n",
+    "### P.S 교수님 모르겠습니다.....ㅠㅅㅠ"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 75,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "FileNotFoundError",
+     "evalue": "[Errno 2] No such file or directory: 'stonehenge.png'",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31mFileNotFoundError\u001b[0m                         Traceback (most recent call last)",
+      "\u001b[0;32m<ipython-input-75-194a1dacdc17>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m\u001b[0m\n\u001b[1;32m      1\u001b[0m \u001b[0;32mfrom\u001b[0m \u001b[0mPIL\u001b[0m \u001b[0;32mimport\u001b[0m \u001b[0mImage\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 2\u001b[0;31m \u001b[0mstonehenge\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mImage\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mopen\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m'stonehenge.png'\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m      3\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      4\u001b[0m \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mstonehenge\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      5\u001b[0m \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mstonehenge\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mformat\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m~/anaconda3/envs/pytorch_p36/lib/python3.6/site-packages/PIL/Image.py\u001b[0m in \u001b[0;36mopen\u001b[0;34m(fp, mode)\u001b[0m\n\u001b[1;32m   2807\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   2808\u001b[0m     \u001b[0;32mif\u001b[0m \u001b[0mfilename\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 2809\u001b[0;31m         \u001b[0mfp\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mbuiltins\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mopen\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mfilename\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m\"rb\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   2810\u001b[0m         \u001b[0mexclusive_fp\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;32mTrue\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   2811\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;31mFileNotFoundError\u001b[0m: [Errno 2] No such file or directory: 'stonehenge.png'"
+     ]
+    }
+   ],
+   "source": [
+    "from PIL import Image\n",
+    "stonehenge = Image.open('stonehenge.png')\n",
+    "\n",
+    "print(stonehenge)\n",
+    "print(stonehenge.format)\n",
+    "print(stonehenge.size)\n",
+    "print(stonehenge.mode)\n",
+    "\n",
+    "plt.imshow(stonehenge)\n",
+    "plt.show()\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "# 왜 이런 현상이 발생하는지 모르겠습니다.....\n",
+    "# 경로 설정도 바꿔보고 거기서 유니코드문제(\\->/)도 만져보고 mode도 설정해봤지만..."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 78,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "SyntaxError",
+     "evalue": "(unicode error) 'unicodeescape' codec can't decode bytes in position 2-3: truncated \\UXXXXXXXX escape (<ipython-input-78-1c28b1cf7a03>, line 2)",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;36m  File \u001b[0;32m\"<ipython-input-78-1c28b1cf7a03>\"\u001b[0;36m, line \u001b[0;32m2\u001b[0m\n\u001b[0;31m    stonehenge = Image.open('C:\\Users\\USER\\Desktop\\stonehenge.png')\u001b[0m\n\u001b[0m                           ^\u001b[0m\n\u001b[0;31mSyntaxError\u001b[0m\u001b[0;31m:\u001b[0m (unicode error) 'unicodeescape' codec can't decode bytes in position 2-3: truncated \\UXXXXXXXX escape\n"
+     ]
+    }
+   ],
+   "source": [
+    "# 경로를 설정해줘야하나..?\n",
+    "from PIL import Image\n",
+    "stonehenge = Image.open('C:\\Users\\USER\\Desktop\\stonehenge.png')\n",
+    "\n",
+    "print(stonehenge)\n",
+    "print(stonehenge.format)\n",
+    "print(stonehenge.size)\n",
+    "print(stonehenge.mode)\n",
+    "\n",
+    "plt.imshow(stonehenge)\n",
+    "plt.show()\n",
+    "\n",
+    "# 유니코드...?     \\를 /로 바꿔줘보자"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 79,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "FileNotFoundError",
+     "evalue": "[Errno 2] No such file or directory: 'C:/Users/USER/Desktop/stonehenge.png'",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31mFileNotFoundError\u001b[0m                         Traceback (most recent call last)",
+      "\u001b[0;32m<ipython-input-79-77071587031f>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m\u001b[0m\n\u001b[1;32m      1\u001b[0m \u001b[0;32mfrom\u001b[0m \u001b[0mPIL\u001b[0m \u001b[0;32mimport\u001b[0m \u001b[0mImage\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 2\u001b[0;31m \u001b[0mstonehenge\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mImage\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mopen\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m'C:/Users/USER/Desktop/stonehenge.png'\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m      3\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      4\u001b[0m \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mstonehenge\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      5\u001b[0m \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mstonehenge\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mformat\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m~/anaconda3/envs/pytorch_p36/lib/python3.6/site-packages/PIL/Image.py\u001b[0m in \u001b[0;36mopen\u001b[0;34m(fp, mode)\u001b[0m\n\u001b[1;32m   2807\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   2808\u001b[0m     \u001b[0;32mif\u001b[0m \u001b[0mfilename\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 2809\u001b[0;31m         \u001b[0mfp\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mbuiltins\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mopen\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mfilename\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m\"rb\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   2810\u001b[0m         \u001b[0mexclusive_fp\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;32mTrue\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   2811\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;31mFileNotFoundError\u001b[0m: [Errno 2] No such file or directory: 'C:/Users/USER/Desktop/stonehenge.png'"
+     ]
+    }
+   ],
+   "source": [
+    "from PIL import Image\n",
+    "stonehenge = Image.open('C:/Users/USER/Desktop/stonehenge.png')\n",
+    "\n",
+    "print(stonehenge)\n",
+    "print(stonehenge.format)\n",
+    "print(stonehenge.size)\n",
+    "print(stonehenge.mode)\n",
+    "\n",
+    "plt.imshow(stonehenge)\n",
+    "plt.show()\n",
+    "\n",
+    "# 아니네...mode설정을 해야하나"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 80,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "FileNotFoundError",
+     "evalue": "[Errno 2] No such file or directory: 'C:/Users/USER/Desktop/stonehenge.png'",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31mFileNotFoundError\u001b[0m                         Traceback (most recent call last)",
+      "\u001b[0;32m<ipython-input-80-34de2d1f5dd0>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m\u001b[0m\n\u001b[1;32m      1\u001b[0m \u001b[0;32mfrom\u001b[0m \u001b[0mPIL\u001b[0m \u001b[0;32mimport\u001b[0m \u001b[0mImage\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 2\u001b[0;31m \u001b[0mstonehenge\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mImage\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mopen\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m'C:/Users/USER/Desktop/stonehenge.png'\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m\"r\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m      3\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      4\u001b[0m \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mstonehenge\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      5\u001b[0m \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mstonehenge\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mformat\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m~/anaconda3/envs/pytorch_p36/lib/python3.6/site-packages/PIL/Image.py\u001b[0m in \u001b[0;36mopen\u001b[0;34m(fp, mode)\u001b[0m\n\u001b[1;32m   2807\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   2808\u001b[0m     \u001b[0;32mif\u001b[0m \u001b[0mfilename\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 2809\u001b[0;31m         \u001b[0mfp\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mbuiltins\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mopen\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mfilename\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m\"rb\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   2810\u001b[0m         \u001b[0mexclusive_fp\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;32mTrue\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   2811\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;31mFileNotFoundError\u001b[0m: [Errno 2] No such file or directory: 'C:/Users/USER/Desktop/stonehenge.png'"
+     ]
+    }
+   ],
+   "source": [
+    "from PIL import Image\n",
+    "stonehenge = Image.open('C:/Users/USER/Desktop/stonehenge.png', \"r\")\n",
+    "\n",
+    "print(stonehenge)\n",
+    "print(stonehenge.format)\n",
+    "print(stonehenge.size)\n",
+    "print(stonehenge.mode)\n",
+    "\n",
+    "plt.imshow(stonehenge)\n",
+    "plt.show()\n",
+    "\n",
+    "# 아니네....\n",
+    "# 그래도 나머지 코드를 쓰면서 공부해보겠습니다..ㅠㅠ"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 2) 픽셀값 0~1사이로 만들기"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 53,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "NameError",
+     "evalue": "name 'stonehenge' is not defined",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31mNameError\u001b[0m                                 Traceback (most recent call last)",
+      "\u001b[0;32m<ipython-input-53-e81055054ab8>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m\u001b[0m\n\u001b[1;32m      2\u001b[0m \u001b[0;31m# numpy arra 로 바꾸기\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      3\u001b[0m \u001b[0;31m# 0~1 사이값으로 만들기\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 4\u001b[0;31m \u001b[0mimMatrix\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mnp\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0marray\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mstonehenge\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mconvert\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m\"L\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m/\u001b[0m\u001b[0;36m255.0\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m      5\u001b[0m \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m \u001b[0mimMatrix\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mshape\u001b[0m \u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      6\u001b[0m \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m \u001b[0mimMatrix\u001b[0m \u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;31mNameError\u001b[0m: name 'stonehenge' is not defined"
+     ]
+    }
+   ],
+   "source": [
+    "# RGB -> grayscale 로 바꾸기\n",
+    "# numpy arra 로 바꾸기\n",
+    "# 0~1 사이값으로 만들기\n",
+    "imMatrix = np.array(stonehenge.convert(\"L\"))/255.0\n",
+    "print( imMatrix.shape )\n",
+    "print( imMatrix )"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 76,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "NameError",
+     "evalue": "name 'imMatrix' is not defined",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31mNameError\u001b[0m                                 Traceback (most recent call last)",
+      "\u001b[0;32m<ipython-input-76-9b7822f6868b>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m\u001b[0m\n\u001b[1;32m      1\u001b[0m \u001b[0mscalar\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;36m1\u001b[0m\u001b[0;34m/\u001b[0m\u001b[0;36m2\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 2\u001b[0;31m \u001b[0mshape\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mnp\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mshape\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mimMatrix\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m      3\u001b[0m \u001b[0mU\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0mS\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0mV\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mnpl\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0msvd\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mimMatrix\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      4\u001b[0m \u001b[0;31m# h x h identity matrix 곱하기 singular value (635,635)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      5\u001b[0m \u001b[0;31m# w0h 만큼 뒤에 0 붙히기 (635,960)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;31mNameError\u001b[0m: name 'imMatrix' is not defined"
+     ]
+    }
+   ],
+   "source": [
+    "scalar = 1/2\n",
+    "shape = np.shape(imMatrix)\n",
+    "U,S,V = npl.svd(imMatrix)\n",
+    "# h x h identity matrix 곱하기 singular value (635,635)\n",
+    "# w0h 만큼 뒤에 0 붙히기 (635,960)\n",
+    "sd = np.hstack([np.eye(shape[0])*S.copy(),np.zero((shape[0],shape[-1]-shape[0]))])\n",
+    "print( np.shape[U],np.shape[Sd],np.shape[V])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 77,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "NameError",
+     "evalue": "name 'U' is not defined",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31mNameError\u001b[0m                                 Traceback (most recent call last)",
+      "\u001b[0;32m<ipython-input-77-cb2cedc659ab>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m\u001b[0m\n\u001b[1;32m      2\u001b[0m \u001b[0;31m# Check 1. 원본 영상 vs. U x Sd x V\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      3\u001b[0m \u001b[0;31m# U x Sd x V\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 4\u001b[0;31m \u001b[0musv\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mU\u001b[0m \u001b[0;34m@\u001b[0m \u001b[0mSd\u001b[0m \u001b[0;34m@\u001b[0m \u001b[0mV\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m      5\u001b[0m \u001b[0;31m# np.matmul( np.matmul(U, Sd), V)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      6\u001b[0m \u001b[0;31m# usv = U.dot(Sd).dot(V)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;31mNameError\u001b[0m: name 'U' is not defined"
+     ]
+    }
+   ],
+   "source": [
+    "# ---image reconstruction with the SVD ---\n",
+    "# Check 1. 원본 영상 vs. U x Sd x V\n",
+    "# U x Sd x V\n",
+    "usv = U @ Sd @ V\n",
+    "# np.matmul( np.matmul(U, Sd), V)\n",
+    "# usv = U.dot(Sd).dot(V)\n",
+    "print( np.allclose(imMatrix, usv) ) #같으면 True\n",
+    "\n",
+    "# Check 2. U x Sd X V 그려보기\n",
+    "plt.imshow(usv, cmap='gray')\n",
+    "plt.show()\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## $$ 4)  A_1시각화 $$"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 81,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "NameError",
+     "evalue": "name 'U' is not defined",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31mNameError\u001b[0m                                 Traceback (most recent call last)",
+      "\u001b[0;32m<ipython-input-81-55601822f4e6>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m\u001b[0m\n\u001b[1;32m      1\u001b[0m \u001b[0mk\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;36m1\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 2\u001b[0;31m \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mnp\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mshape\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mU\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0mk\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m      3\u001b[0m \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mnp\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mshape\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mnp\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mdiag\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mS\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0mk\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      4\u001b[0m \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mnp\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mshape\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mV\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mT\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0mk\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mT\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      5\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;31mNameError\u001b[0m: name 'U' is not defined"
+     ]
+    }
+   ],
+   "source": [
+    "k=1 \n",
+    "print(np.shape(U[:,:k]))\n",
+    "print(np.shape(np.diag(S[:k])))\n",
+    "print(np.shape(V.T[:,:k].T))\n",
+    "\n",
+    "m,n = np.shape(imMatrix)\n",
+    "partial,total = k*(m+n)+k, m*n\n",
+    "print(np.ndim(ImMatrix),[np.shape(i) for i in [imMatrix,U,Sd,V]])\n",
+    "print(partial,total, partial/total)\n",
+    "\n",
+    "size = (200,200)\n",
+    "imtemp = lambda l: (np.vstack(U[:,k-1])@np.vstack([S[k-1]])@np.vstack(V[k-1]).T)*255\n",
+    "for i in list(range(1,6)):\n",
+    "    im = Image.fromarray(imtemp(i).astype('uint8'))\n",
+    "    im.thumbnail(size, Image.ANTIALIAS)\n",
+    "    plt.imshow(im, cmap='gray')\n",
+    "    plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 5)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 82,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "NameError",
+     "evalue": "name 'S' is not defined",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31mNameError\u001b[0m                                 Traceback (most recent call last)",
+      "\u001b[0;32m<ipython-input-82-df7082a4ea4d>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m\u001b[0m\n\u001b[1;32m      1\u001b[0m \u001b[0mquality\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;36m5\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 2\u001b[0;31m \u001b[0mnp\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mshape\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mnp\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mdiag\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mS\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0mquality\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m      3\u001b[0m \u001b[0mnp\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mshape\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mU\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0mquality\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      4\u001b[0m \u001b[0mnp\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mshape\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mV\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0mquality\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      5\u001b[0m \u001b[0mk\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mquality\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;31mNameError\u001b[0m: name 'S' is not defined"
+     ]
+    }
+   ],
+   "source": [
+    "quality = 5\n",
+    "np.shape(np.diag(S[:quality]))\n",
+    "np.shape(U[:,:quality])\n",
+    "np.shape(V[:quality,:])\n",
+    "k = quality\n",
+    "m,n = np.shape(imMatrix)\n",
+    "partial.total = K*(m+n)+k, m*n\n",
+    "np.ndim(imMatrix),[np.shape(i) for i in [imMatrix,U,Sd,V]]\n",
+    "partial,total, partial/total\n",
+    "\n",
+    "imtemp = lambda k: (U[:,:k]@np.diag(S[:k])@V.T[:,:k].T)*255\n",
+    "for i in list(range(1,k+1)):\n",
+    "    im = Image.fromarray(imtemp(i).astype('uint8'))\n",
+    "    im.thumbnail(size, Image.ANTIALIAS)\n",
+    "    plt.imshow(im, cmap='gray')\n",
+    "    plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 6)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 83,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "NameError",
+     "evalue": "name 'imtemp' is not defined",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31mNameError\u001b[0m                                 Traceback (most recent call last)",
+      "\u001b[0;32m<ipython-input-83-112de09f3669>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m\u001b[0m\n\u001b[1;32m      1\u001b[0m \u001b[0mk\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;36m30\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 2\u001b[0;31m \u001b[0mim\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mimtemp\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mk\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m      3\u001b[0m \u001b[0mm\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0mn\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mnp\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mshape\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mimMatrix\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      4\u001b[0m \u001b[0mpartial\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0mtotal\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;34m(\u001b[0m\u001b[0mk\u001b[0m\u001b[0;34m*\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mm\u001b[0m\u001b[0;34m+\u001b[0m\u001b[0mn\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m+\u001b[0m\u001b[0mk\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mm\u001b[0m\u001b[0;34m*\u001b[0m\u001b[0mn\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      5\u001b[0m \u001b[0mpartial\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0mtotal\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mpartial\u001b[0m\u001b[0;34m/\u001b[0m\u001b[0mtotal\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;31mNameError\u001b[0m: name 'imtemp' is not defined"
+     ]
+    }
+   ],
+   "source": [
+    "k = 30\n",
+    "im = imtemp(k)\n",
+    "m,n = np.shape(imMatrix)\n",
+    "partial,total = (k*(m+n)+k, m*n)\n",
+    "partial,total, partial/total\n",
+    "\n",
+    "plt.imshow(im, cmap='gray')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "conda_pytorch_p36",
+   "language": "python",
+   "name": "conda_pytorch_p36"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.6.10"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}
