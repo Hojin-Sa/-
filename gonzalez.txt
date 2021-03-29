@@ -1,0 +1,214 @@
+#pragma warning(disable:4996)
+#include <stdio.h>
+#include <stdlib.h>
+#include <Windows.h>
+
+void ObtainHistogram(BYTE* Img, int* Histo, int W, int H)
+{
+	int ImgSize = W * H;
+	for (int i = 0; i < ImgSize; i++) {
+		Histo[Img[i]]++;
+	}
+}
+
+int GozalezBinThresh(BYTE * Img, BYTE * Out, int * Histo, int W, int H)
+{
+    int ImgSize = W * H;
+	BYTE Low, High;
+	for (int i = 0; i < 256; i++) {
+		if (Histo[i] != 0) {
+			Low = i;
+			break;
+		}
+	}
+	for (int i = 255; i >= 0; i--) {
+		if (Histo[i] != 0) {
+			High = i;
+			break;
+		}
+	}
+    int T = (Low+High)/2;
+
+    int Diff = 3;
+    while(Diff >= 1)
+	{
+        int nBrt = 0, nPix = 0;    // nBrt: 그룹 1에 속하는 전체 화소 밝기값, nPix: 그룹 1의 전체 화소수 
+        for(int i=0; i<T; i++){
+            nBrt += Histo[i] * i;
+            nPix += Histo[i];
+        }
+  
+    	double u1 = (double)(nBrt/nPix); // 그룹 1의 밝기값 평균
+
+    	nBrt = 0, nPix = 0;          // nBrt: 그룹 2에 속하는 전체 화소 밝기값, nPix: 그룹 2의 전체 화소수 
+    	for(int i=T; i<256; i++)
+    	{
+        	nBrt += Histo[i] * i;
+        	nPix += Histo[i];
+    	}
+  		double u2 = (double)(nBrt/nPix);    // 그룹 2의 밝기값 평균
+
+    	int T_Last = (int)((u1 + u2)/2);     // 두 화소 그룹의 밝기값 평균을 이용한 임계값 결정 
+
+    	Diff = abs(T-T_Last);  // 새롭게 계산된 임계값과 이전의 임계값과의 차이 계산
+    	T = T_Last;
+
+    }
+
+    int Thres = T;  // 최종 Gonzalez 임계값 결정
+    return Thres;
+    
+
+}
+
+void Binarization(BYTE * Img, BYTE * Out, int W, int H, BYTE Threshold)
+{
+	int ImgSize = W * H;
+	for (int i = 0; i < ImgSize; i++) {
+		if (Img[i] < Threshold) Out[i] = 0;
+		else Out[i] = 255;
+	}
+}
+
+
+
+int main()
+{
+	BITMAPFILEHEADER hf; // 14바이트
+	BITMAPINFOHEADER hInfo; // 40바이트
+	RGBQUAD hRGB[256]; // 1024바이트
+	FILE* fp;
+	fp = fopen("coin.bmp", "rb");
+	if (fp == NULL) {
+		printf("File not found!\n");
+		return -1;
+	}
+	fread(&hf, sizeof(BITMAPFILEHEADER), 1, fp);
+	fread(&hInfo, sizeof(BITMAPINFOHEADER), 1, fp);
+	fread(hRGB, sizeof(RGBQUAD), 256, fp);
+	int ImgSize = hInfo.biWidth * hInfo.biHeight;
+	BYTE * Image = (BYTE *)malloc(ImgSize);
+	BYTE * Output = (BYTE*)malloc(ImgSize);
+	fread(Image, sizeof(BYTE), ImgSize, fp);
+	fclose(fp);
+
+	int Histo[256] = { 0 };
+
+
+	ObtainHistogram(Image, Histo, hInfo.biWidth, hInfo.biHeight);
+	int Threshold = GozalezBinThresh(Image, Output, Histo, hInfo.biWidth, hInfo.biHeight);
+	Binarization(Image, Output, hInfo.biWidth, hInfo.biHeight, Threshold);
+	
+#pragma warning(disable:4996)
+#include <stdio.h>
+#include <stdlib.h>
+#include <Windows.h>
+
+void ObtainHistogram(BYTE* Img, int* Histo, int W, int H)
+{
+	int ImgSize = W * H;
+	for (int i = 0; i < ImgSize; i++) {
+		Histo[Img[i]]++;
+	}
+}
+
+int GozalezBinThresh(BYTE * Img, BYTE * Out, int * Histo, int W, int H)
+{
+    int ImgSize = W * H;
+	BYTE Low, High;
+	for (int i = 0; i < 256; i++) {
+		if (Histo[i] != 0) {
+			Low = i;
+			break;
+		}
+	}
+	for (int i = 255; i >= 0; i--) {
+		if (Histo[i] != 0) {
+			High = i;
+			break;
+		}
+	}
+    int T = (Low+High)/2;
+
+    int Diff = 3;
+    while(Diff >= 1)
+	{
+        int nBrt = 0, nPix = 0;    // nBrt: 그룹 1에 속하는 전체 화소 밝기값, nPix: 그룹 1의 전체 화소수 
+        for(int i=0; i<T; i++){
+            nBrt += Histo[i] * i;
+            nPix += Histo[i];
+        }
+  
+    	double u1 = (double)(nBrt/nPix); // 그룹 1의 밝기값 평균
+
+    	nBrt = 0, nPix = 0;          // nBrt: 그룹 2에 속하는 전체 화소 밝기값, nPix: 그룹 2의 전체 화소수 
+    	for(int i=T; i<256; i++)
+    	{
+        	nBrt += Histo[i] * i;
+        	nPix += Histo[i];
+    	}
+  		double u2 = (double)(nBrt/nPix);    // 그룹 2의 밝기값 평균
+
+    	int T_Last = (int)((u1 + u2)/2);     // 두 화소 그룹의 밝기값 평균을 이용한 임계값 결정 
+
+    	Diff = abs(T-T_Last);  // 새롭게 계산된 임계값과 이전의 임계값과의 차이 계산
+    	T = T_Last;
+
+    }
+
+    int Thres = T;  // 최종 Gonzalez 임계값 결정
+    return Thres;
+    
+
+}
+
+void Binarization(BYTE * Img, BYTE * Out, int W, int H, BYTE Threshold)
+{
+	int ImgSize = W * H;
+	for (int i = 0; i < ImgSize; i++) {
+		if (Img[i] < Threshold) Out[i] = 0;
+		else Out[i] = 255;
+	}
+}
+
+
+
+int main()
+{
+	BITMAPFILEHEADER hf; // 14바이트
+	BITMAPINFOHEADER hInfo; // 40바이트
+	RGBQUAD hRGB[256]; // 1024바이트
+	FILE* fp;
+	fp = fopen("coin.bmp", "rb");
+	if (fp == NULL) {
+		printf("File not found!\n");
+		return -1;
+	}
+	fread(&hf, sizeof(BITMAPFILEHEADER), 1, fp);
+	fread(&hInfo, sizeof(BITMAPINFOHEADER), 1, fp);
+	fread(hRGB, sizeof(RGBQUAD), 256, fp);
+	int ImgSize = hInfo.biWidth * hInfo.biHeight;
+	BYTE * Image = (BYTE *)malloc(ImgSize);
+	BYTE * Output = (BYTE*)malloc(ImgSize);
+	fread(Image, sizeof(BYTE), ImgSize, fp);
+	fclose(fp);
+
+	int Histo[256] = { 0 };
+
+
+	ObtainHistogram(Image, Histo, hInfo.biWidth, hInfo.biHeight);
+	int Threshold = GozalezBinThresh(Image, Output, Histo, hInfo.biWidth, hInfo.biHeight);
+	Binarization(Image, Output, hInfo.biWidth, hInfo.biHeight, Threshold);
+	
+
+
+	fp = fopen("output.bmp", "wb");
+	fwrite(&hf, sizeof(BYTE), sizeof(BITMAPFILEHEADER), fp);
+	fwrite(&hInfo, sizeof(BYTE), sizeof(BITMAPINFOHEADER), fp);
+	fwrite(hRGB, sizeof(RGBQUAD), 256, fp);
+	fwrite(Output, sizeof(BYTE), ImgSize, fp);
+	fclose(fp);
+	free(Image);
+	free(Output);
+	return 0;
+}
